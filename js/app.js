@@ -702,8 +702,17 @@
 
   // ---------------------------------------------------------------- router
   function navigate(hash, replace){
-    if(replace) location.replace("#" + hash.split("#")[1]);
-    else location.hash = hash.replace(/^#/, "");
+    var nextHash = "#" + hash.split("#")[1];
+    // Replacing the current hash does not emit `hashchange`. Quiz and
+    // flash-card sessions intentionally reuse the same route while advancing
+    // their in-memory position, so force a render when the route is unchanged.
+    if(location.hash === nextHash){
+      if(replace) history.replaceState(null, "", nextHash);
+      route();
+      return;
+    }
+    if(replace) location.replace(nextHash);
+    else location.hash = nextHash.replace(/^#/, "");
   }
   window.navigate = navigate;
 
