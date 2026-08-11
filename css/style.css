@@ -127,7 +127,7 @@ main{flex:1; padding:14px 16px 96px;}
 
 .tabbar{
   position:sticky; bottom:0; z-index:20;
-  display:grid; grid-template-columns:repeat(5,1fr);
+  display:grid; grid-template-columns:repeat(4,1fr);
   padding:6px 6px calc(env(safe-area-inset-bottom,0px) + 6px);
   background:color-mix(in srgb, var(--paper) 92%, transparent);
   backdrop-filter:blur(10px);
@@ -427,6 +427,121 @@ del.examtag{
 }
 .theme-toggle button.active{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
 
+.setting-label{font-size:.72rem; color:var(--ink-soft); margin-bottom:7px; letter-spacing:.04em;}
+.font-stepper{display:flex; align-items:stretch; gap:8px;}
+.font-stepper button{
+  flex:none; width:56px; border:1px solid var(--line-strong); border-radius:var(--radius-m); background:var(--paper);
+  color:var(--ink); font-size:1rem; font-weight:700; cursor:pointer;
+}
+.font-stepper__val{
+  flex:1; border:1px solid var(--line); border-radius:var(--radius-m); background:var(--paper);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px;
+}
+.font-stepper__val b{font-family:var(--font-display); font-size:1.1rem; font-variant-numeric:tabular-nums;}
+.font-stepper__val span{font-size:.68rem; color:var(--ink-soft);}
+
 @media (prefers-reduced-motion: reduce){
   .flashcard, .switch::after{transition:none !important;}
 }
+
+/* ===================================================================
+   墨水屏模式（data-eink）
+   依据《墨水屏适配移交手册》(文石 10.3", 227ppi) 实测经验：
+   纯黑白 + 黑体（宋体横画在墨水屏上会糊）+ 无阴影/动画 + 实线边框 +
+   弱文字层级压深(≤70灰) + 选中态反白 + 铺满宽屏。
+   本块置于文件末尾，令其 token 覆盖胜过主题与 prefers-color-scheme。
+   =================================================================== */
+:root[data-eink]{
+  --paper:#ffffff;
+  --paper-raised:#ffffff;
+  --ink:#000000;
+  --ink-soft:#2b2b2b;          /* 43 灰，仍够黑 */
+  --line:#8c8c8c;
+  --line-strong:#4d4d4d;
+
+  --accent:#000000;
+  --accent-ink:#000000;
+  --accent-soft:#e6e6e6;
+  --accent-soft-line:#4d4d4d;
+
+  --gold:#000000;
+  --gold-soft:#e6e6e6;
+
+  --danger:#000000;
+  --danger-soft:#dcdcdc;
+
+  --shadow:none;
+  /* 黑体系：这一条比配色更影响墨水屏清晰度，优先 */
+  --font-display:"Noto Sans SC","Source Han Sans SC","PingFang SC","Microsoft YaHei","Heiti SC",system-ui,sans-serif;
+  --font-body:"Noto Sans SC","Source Han Sans SC","PingFang SC","Microsoft YaHei","Heiti SC",system-ui,sans-serif;
+}
+/* 正文加粗到 500，标题保持 700，抵消抗锯齿的发灰 */
+:root[data-eink] body{font-weight:500;}
+:root[data-eink] .b-p, :root[data-eink] .b-list, :root[data-eink] table.b-table td,
+:root[data-eink] .b-def__def, :root[data-eink] .quiz-card__stem, :root[data-eink] .quiz-opt{font-weight:500;}
+/* 铺满宽屏：文石 CSS 视口约 936px，用 rem 基准使其随字号自适应 */
+:root[data-eink] #app{max-width:min(100%, 62rem);}
+/* 关闭一切动画/过渡——残影主因 */
+:root[data-eink] *{transition:none !important; animation:none !important;}
+/* 去毛玻璃、去半透明，顶/底栏用实白 + 实线 */
+:root[data-eink] .topbar, :root[data-eink] .tabbar{
+  background:#ffffff; backdrop-filter:none; -webkit-backdrop-filter:none;
+}
+:root[data-eink] .topbar{border-bottom:1px solid var(--line-strong);}
+:root[data-eink] .tabbar{border-top:1px solid var(--line-strong);}
+/* 卡片：阴影已为 none，层次一律改用实线边框 */
+:root[data-eink] .stat-card, :root[data-eink] .chapter-card, :root[data-eink] .section-card,
+:root[data-eink] .point, :root[data-eink] .quiz-card, :root[data-eink] .search-hit,
+:root[data-eink] .profile-card, :root[data-eink] .check-row, :root[data-eink] .flash-face{
+  border:1.5px solid var(--line-strong);
+}
+/* 口诀卡：虚线深边框，与知识点卡区分靠形状而非颜色 */
+:root[data-eink] .b-mnemonic{border:1.5px dashed #000; background:#fff;}
+:root[data-eink] .b-mnemonic__label, :root[data-eink] .b-mnemonic__phrase,
+:root[data-eink] .b-mnemonic__k{color:#000;}
+:root[data-eink] mark{background:#d9d9d9; color:#000;}
+:root[data-eink] strong{color:#000;}
+:root[data-eink] del.examtag{color:#000; font-weight:700;}
+/* 重要程度圆点：靠实心/空心区分，不靠红色 */
+:root[data-eink] .point__dots{color:#000;}
+/* 章节卡左侧色条：改为深浅实色区分状态 */
+:root[data-eink] .chapter-card::before{background:#000;}
+:root[data-eink] .chapter-card[data-status="locked"]::before{background:#bfbfbf;}
+:root[data-eink] .chapter-card[data-status="partial"]::before{background:#7a7a7a;}
+:root[data-eink] .badge--complete{background:#fff; color:#000; border-color:#000;}
+:root[data-eink] .badge--partial{color:#000; border-color:#7a7a7a;}
+/* 进度条：黑填充、浅灰底 */
+:root[data-eink] .chapter-card__progress, :root[data-eink] .progress-line__bar,
+:root[data-eink] .deck-progress__bar{background:#d9d9d9;}
+:root[data-eink] .chapter-card__progress i, :root[data-eink] .progress-line__bar i,
+:root[data-eink] .deck-progress__bar i{background:#000;}
+/* 底部导航：选中靠加粗 + 反白圆点，不靠色相 */
+:root[data-eink] .tabbar button{color:#666;}
+:root[data-eink] .tabbar button.active{color:#000; font-weight:700;}
+/* 主按钮：黑底白字（反白） */
+:root[data-eink] .primary-btn{background:#000; color:#fff;}
+/* 开关：开=实心黑 */
+:root[data-eink] .switch{background:#bfbfbf;}
+:root[data-eink] .switch[data-on="1"]{background:#000;}
+:root[data-eink] .switch::after{background:#fff;}
+/* 主题/字号按钮选中态反白 */
+:root[data-eink] .theme-toggle button.active{background:#000; color:#fff; border-color:#000;}
+/* 测验：正确=黑底白字，错误=白底粗虚线黑框——靠形状区分而非红/绿 */
+:root[data-eink] .quiz-opt[data-state="correct"]{background:#000; color:#fff; border-color:#000;}
+:root[data-eink] .quiz-opt[data-state="correct"] .quiz-opt__mark{background:#fff; color:#000; border-color:#fff;}
+:root[data-eink] .quiz-opt[data-state="wrong"]{background:#fff; color:#000; border:2px dashed #000;}
+:root[data-eink] .quiz-opt[data-state="wrong"] .quiz-opt__mark{background:#fff; color:#000; border-color:#000;}
+:root[data-eink] .quiz-explain, :root[data-eink] .b-tip{background:#f0f0f0; color:#000; border:1px solid var(--line-strong);}
+:root[data-eink] .chip{background:#eee; color:#000; border-color:#000;}
+:root[data-eink] .chip--exam{background:#fff; color:#000; border:1px dashed #000;}
+/* 闪卡翻面：正面浅灰、背面纯白，靠边框区分，不靠渐变金 */
+:root[data-eink] .flash-face--front{background:#f4f4f4;}
+:root[data-eink] .flash-face--back{background:#fff; border-color:#000;}
+:root[data-eink] .flash-face__label{color:#000;}
+:root[data-eink] .btn-again{background:#fff; color:#000; border:1.5px dashed #000;}
+:root[data-eink] .btn-known{background:#000; color:#fff;}
+:root[data-eink] .b-quote{border-left-color:#000;}
+:root[data-eink] ::selection{background:#000; color:#fff;}
+/* 大屏兜底：grid 子项可收缩、flex 行可换行，防横向溢出 */
+:root[data-eink] .stat-row > *, :root[data-eink] .tabbar > *{min-width:0;}
+:root[data-eink] .deck-actions, :root[data-eink] .judge-row, :root[data-eink] .theme-toggle{flex-wrap:wrap;}

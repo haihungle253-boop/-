@@ -23,12 +23,22 @@
   function defaultState(){
     return {
       theme: "system",
+      eink: false,        // 墨水屏模式：纯黑白、黑体、无阴影/动画、铺满宽屏
+      fontScale: 1,        // 全局字号倍率
       reviewed: {},      // pointId -> true
       bookmarks: {},      // pointId -> true
       mnemo: {},          // mnemoId -> {known:bool, seen:int}
       mistakes: {},        // quizId -> true
       quizHistory: []      // {date, total, correct}
     };
+  }
+  var FONT_MIN = 0.8, FONT_MAX = 1.8, FONT_STEP = 0.1;
+  function clampFont(v){
+    v = Number(v) || 1;
+    // 就近吸附到有效区间，绝不因越界而丢弃用户设置
+    if(v < FONT_MIN) v = FONT_MIN;
+    if(v > FONT_MAX) v = FONT_MAX;
+    return Math.round(v * 100) / 100;
   }
   var state = loadState();
   function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
@@ -659,11 +669,22 @@
         return '<div class="mistake-row"><div class="mistake-row__stem">'+inlineMD(q.stem)+'</div><button class="ghost-btn" data-clearmis="'+qid+'" style="padding:4px 10px;font-size:.7rem;">移出</button></div>';
       }).join("") : '<div class="empty-state">暂无错题，继续保持～</div>') + "</div>";
 
-    html += '<div class="profile-card"><h3>外观</h3><div class="theme-toggle">' +
+    html += '<div class="profile-card"><h3>外观</h3>' +
+      '<div class="setting-label">主题</div>' +
+      '<div class="theme-toggle">' +
       ["system","light","dark"].map(function(t){
         var label = t==="system"?"跟随系统":t==="light"?"浅色":"深色";
         return '<button data-theme="'+t+'" class="'+(state.theme===t?"active":"")+'">'+label+"</button>";
-      }).join("") + "</div></div>";
+      }).join("") + "</div>" +
+      '<div class="check-row" style="margin-top:12px;"><div><div class="check-row__label">墨水屏模式</div><div class="check-row__sub">纯黑白 · 黑体 · 铺满宽屏 · 关闭动画，适配文石等墨水屏</div></div><button class="switch" id="eink-switch" data-on="'+(state.eink?1:0)+'"></button></div>' +
+      '<div class="setting-label" style="margin-top:14px;">字号</div>' +
+      '<div class="font-stepper">' +
+        '<button id="font-dec" aria-label="减小字号">A−</button>' +
+        '<div class="font-stepper__val"><b id="font-val">'+Math.round(state.fontScale*100)+'%</b><span>正文预览</span></div>' +
+        '<button id="font-inc" aria-label="增大字号">A+</button>' +
+      "</div>" +
+      '<button class="ghost-btn" id="font-reset" style="margin-top:10px;width:100%;">恢复默认字号（100%）</button>' +
+      "</div>";
 
     html += '<div class="profile-card"><h3>关于</h3><p style="font-size:.78rem;color:var(--ink-soft);line-height:1.8;">'+esc(DATA.meta.sourceNote)+'</p></div>';
 
@@ -687,6 +708,21 @@
         save(); applyTheme(); viewProfile();
       });
     });
+    var einkSwitch = document.getElementById("eink-switch");
+    if(einkSwitch) einkSwitch.addEventListener("click", function(){
+      state.eink = !state.eink;
+      save(); applyTheme(); viewProfile();
+    });
+    function bumpFont(delta){
+      state.fontScale = clampFont(state.fontScale + delta);
+      save(); applyTheme();
+      var v = document.getElementById("font-val");
+      if(v) v.textContent = Math.round(state.fontScale * 100) + "%";
+    }
+    var fdec = document.getElementById("font-dec"), finc = document.getElementById("font-inc"), fres = document.getElementById("font-reset");
+    if(fdec) fdec.addEventListener("click", function(){ bumpFont(-FONT_STEP); });
+    if(finc) finc.addEventListener("click", function(){ bumpFont(FONT_STEP); });
+    if(fres) fres.addEventListener("click", function(){ state.fontScale = 1; save(); applyTheme(); var v=document.getElementById("font-val"); if(v) v.textContent="100%"; });
   }
   function progressLine(label, done, total){
     var pct = total ? Math.round(done/total*100) : 0;
@@ -698,6 +734,11 @@
     if(state.theme === "light") root.setAttribute("data-theme", "light");
     else if(state.theme === "dark") root.setAttribute("data-theme", "dark");
     else root.removeAttribute("data-theme");
+    if(state.eink) root.setAttribute("data-eink", "1");
+    else root.removeAttribute("data-eink");
+    // 字号：缩放根 font-size，所有 rem 尺寸随之等比变化
+    state.fontScale = clampFont(state.fontScale);
+    root.style.fontSize = Math.round(state.fontScale * 100) + "%";
   }
 
   // ---------------------------------------------------------------- router
